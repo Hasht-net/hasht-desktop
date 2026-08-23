@@ -1,0 +1,89 @@
+# Shared across the Hasht apps (this one plus future iOS/Android clients),
+# not a typo for something more Electron-specific — this ships in the code
+# signature / macOS keychain entries, so it's not a cosmetic rename later.
+appId: net.hasht.app
+productName: Hasht
+directories:
+  output: release
+
+# Ad-hoc signs unsigned macOS builds so a downloaded .app isn't rejected as
+# "damaged". See the file for why this is needed and what it does not fix.
+afterPack: build/afterPack.js
+files:
+  - dist/**/*
+  - src/renderer-picker/**/*
+  - build/**/*
+
+# Deep-link scheme the browser sign-in handoff calls back on.
+protocols:
+  - name: Hasht Desktop
+    schemes: [hasht]
+
+mac:
+  category: public.app-category.social-networking
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Hasht needs microphone access for voice chat.
+    NSCameraUsageDescription: Hasht needs camera access for voice chat.
+    # Required for passkeys signed in on a phone (caBLE talks over BLE).
+    NSBluetoothAlwaysUsageDescription: Hasht uses Bluetooth to sign in with a passkey on a nearby device.
+  # Notarization: set APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+  # env vars in CI; electron-builder notarizes automatically when present.
+
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  # Code signing: set CSC_LINK / CSC_KEY_PASSWORD (or use Azure Trusted
+  # Signing) in CI — unsigned builds trigger SmartScreen warnings.
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+    - target: rpm
+      arch: [x64, arm64]
+    # Plain tarball: what the AUR package unpacks. Arch has no native format
+    # of its own to build here — a PKGBUILD fetches this.
+    - target: tar.gz
+      arch: [x64, arm64]
+  category: Network
+  # The tarball carries no icon otherwise, and the AUR package has to install
+  # one (a private repo can't be fetched from a PKGBUILD).
+  extraResources:
+    - from: build/icon.png
+      to: icon.png
+  # deb and rpm both require a Maintainer field. Overrides the `author` derived
+  # default (Ralph's personal no-reply address) with the project's own contact.
+  maintainer: Hasht <support@hasht.net>
+  synopsis: Hasht desktop client for the self-hosted chat app
+  description: |
+    Thin desktop shell for the self-hosted chat app. Connects to a server you
+    configure, with a tray icon, unread badges and background operation.
+
+publish:
+  provider: github
+  owner: Hasht-net
+  repo: hasht-desktop
+  # Load-bearing. The publisher defaults to "draft", and on finding an
+  # already-published release it logs a warning and uploads NOTHING — the
+  # build still exits 0, so the release just ends up empty. Our workflow runs
+  # on `release: published`, so the release is always already published.
+  releaseType: release
+  # This block is also baked into app-update.yml inside the package, which is
+  # where electron-updater (src/main/updater.ts) reads the feed from. Two
+  # things still gate updates actually working:
+  #   - the repo must be public, or the update check 404s with no token;
+  #   - macOS updates need a signed build (Squirrel.Mac refuses to swap in an
+  #     unsigned app), so mac auto-update stays broken until signing is set up.
+  # Windows NSIS and Linux AppImage update fine unsigned.

@@ -1,0 +1,242 @@
+name: "Release"
+
+# Builds installers for macOS, Windows and Linux (deb/rpm/AppImage/tar.gz),
+# attaches them to the GitHub Release that triggered the run, and pushes an
+# updated PKGBUILD to the AUR.
+#
+# Trigger: publishing a release tagged `vX.Y.Z`.
+#
+# Versioning: the tag is the source of truth — `package.json`'s version is
+# overwritten with it at build time, so the installer version can never drift
+# from the release it ships in. The short commit SHA goes into every artifact
+# filename and the app's metadata for traceability.
+#
+# Each OS builds on its own native runner (electron-builder needs macOS to
+# produce a .app, Windows for NSIS), shipping both x86_64 and arm64.
+#
+# Signing: not configured. Both macOS and Windows builds are unsigned, so
+# Gatekeeper/SmartScreen will warn on first launch. See electron-builder.yml
+# for the secrets to add once certificates exist.
+
+on:
+  release:
+    types: [published]
+  # Dry run: builds both platforms and leaves the installers as run artifacts
+  # without touching any release.
+  workflow_dispatch:
+
+# One publish per tag. Never cancel in flight — a half-uploaded release is
+# worse than a slow one.
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: "Build (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Don't let one platform failing throw away the other's artifacts.
+      fail-fast: false
+      matrix:
+        include:
+          # One runner per platform, each producing both architectures — the
+          # arch lists in electron-builder.yml drive that, and they take
+          # precedence over any --x64/--arm64 CLI flag.
+          - os: macos-14
+            platform: mac
+          - os: windows-latest
+            platform: win
+          # x86_64 deliberately, even though this builds the arm64 packages
+          # too: electron-builder's bundled fpm is x86-only
+          # (fpm-1.9.3-2.3.1-linux-x86), so deb and rpm cannot be built on an
+          # arm64 host at all. It cross-builds arm64 packages happily.
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: "Resolve version and commit"
+        id: meta
+        shell: bash
+        run: |
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+            # electron-builder's GitHub publisher looks for a release tagged
+            # v${version}, so the tag has to carry the leading v or the upload
+            # lands on a release that doesn't exist.
+            case "$TAG" in
+              v[0-9]*) ;;
+              *) echo "::error::Release tag '$TAG' must look like vX.Y.Z"; exit 1 ;;
+            esac
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            # Dry run: keep package.json's version, just mark it a build.
+            echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          fi
+
+      # fpm shells out to rpmbuild, which isn't on GitHub's Ubuntu image.
+      - name: "Install rpm tooling"
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - run: npm ci
+
+      - name: "Stamp version"
+        shell: bash
+        run: npm pkg set version="${{ steps.meta.outputs.version }}"
+
+      # electron-builder packages dist/, it does not produce it — and dist/ is
+      # gitignored, so without this the asar has no entry point.
+      - name: "Compile"
+        run: npm run build
+
+      - name: "Build ${{ matrix.platform }}"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Developer ID in CI yet; without this electron-builder fails the
+          # macOS build hunting for a signing identity.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          # The publisher otherwise refuses to attach to a release published
+          # more than 2 hours ago, which silently breaks re-runs and any run
+          # that sat in a queue.
+          EP_GH_IGNORE_TIME: true
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            PUBLISH=always
+          else
+            PUBLISH=never
+          fi
+          # matrix.platform rather than electron-builder's ${os} macro: this is
+          # already exactly mac/win/linux, and it can't silently pass through
+          # unexpanded the way an unsupported macro would.
+          npx electron-builder --${{ matrix.platform }} \
+            --publish "$PUBLISH" \
+            --config.artifactName='${productName}-${version}-'"$SHORT_SHA-${{ matrix.platform }}"'-${arch}.${ext}' \
+            --config.extraMetadata.commit="${{ github.sha }}"
+
+      - name: "Upload installers (dry run only)"
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "installers-${{ matrix.os }}-${{ steps.meta.outputs.short_sha }}"
+          # The build output also contains unpacked app directories and
+          # blockmaps; only ship the things a user would actually download.
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            release/*.tar.gz
+          if-no-files-found: error
+
+  aur:
+    # Arch has nothing to upload to the release — AUR is a git repo holding a
+    # PKGBUILD that users' helpers build locally. This renders it against the
+    # tarballs the build jobs just published and pushes it.
+    name: "Publish AUR package"
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      # --disable-sandbox: pacman's download sandbox fails to initialise in
+      # some container/seccomp combinations, which is a confusing way for a
+      # release to break. The runner is ephemeral.
+      - name: "Install tooling"
+        run: pacman --disable-sandbox -Sy --noconfirm git openssh github-cli
+
+      # secrets aren't available to a job-level `if`, so this gates the steps
+      # below instead — a release shouldn't go red just because AUR publishing
+      # hasn't been set up yet.
+      - name: "Check for AUR key"
+        id: guard
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          if [ -z "$AUR_SSH_KEY" ]; then
+            echo "::notice::AUR_SSH_KEY is not set — skipping AUR publish."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: "Render PKGBUILD"
+        if: steps.guard.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name }}"
+          PKGVER="${TAG#v}"
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
+
+          # Checksums come from the exact assets that were just uploaded, not
+          # from a local rebuild — a PKGBUILD must describe what users will
+          # actually download.
+          gh release download "$TAG" --repo "${{ github.repository }}" \
+            --pattern "*-$SHORT_SHA-linux-x64.tar.gz" \
+            --pattern "*-$SHORT_SHA-linux-arm64.tar.gz" --dir dl
+          SHA_X64=$(sha256sum "dl/Hasht-$PKGVER-$SHORT_SHA-linux-x64.tar.gz" | cut -d' ' -f1)
+          SHA_ARM64=$(sha256sum "dl/Hasht-$PKGVER-$SHORT_SHA-linux-arm64.tar.gz" | cut -d' ' -f1)
+
+          mkdir -p aur-out
+          sed -e "s/@PKGVER@/$PKGVER/g" \
+              -e "s/@SHORT_SHA@/$SHORT_SHA/g" \
+              -e "s/@SHA256_X64@/$SHA_X64/g" \
+              -e "s/@SHA256_ARM64@/$SHA_ARM64/g" \
+              packaging/aur/PKGBUILD.in > aur-out/PKGBUILD
+
+      - name: "Generate .SRCINFO"
+        if: steps.guard.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          # makepkg refuses to run as root, and this container is root.
+          useradd -m builder
+          chown -R builder aur-out
+          su builder -c 'cd aur-out && makepkg --printsrcinfo > .SRCINFO'
+
+      - name: "Push to AUR"
+        if: steps.guard.outputs.configured == 'true'
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+
+          git config --global user.name "Ralph Luaces"
+          git config --global user.email "16159770+raluaces@users.noreply.github.com"
+          git config --global --add safe.directory '*'
+
+          git clone ssh://aur@aur.archlinux.org/hasht-desktop-bin.git aur-repo
+          cp aur-out/PKGBUILD aur-out/.SRCINFO aur-repo/
+          cd aur-repo
+          # A re-run of the same release is a no-op rather than an empty commit.
+          if git diff --quiet; then
+            echo "AUR package already up to date"
+            exit 0
+          fi
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to ${{ github.event.release.tag_name }}"
+          git push

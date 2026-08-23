@@ -1,0 +1,32 @@
+{
+  "name": "hasht-desktop",
+  "version": "0.1.0",
+  "description": "Electron desktop shell for the self-hosted chat app \u2014 thin client, loads a user-configured server URL.",
+  "main": "dist/main/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build && concurrently -k \"tsc -p tsconfig.json -w\" \"wait-on dist/main/main.js && electron dist/main/main.js\"",
+    "build": "tsc -p tsconfig.json",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac --universal",
+    "dist:win": "npm run build && electron-builder --win --x64 --arm64",
+    "dist:linux": "npm run build && electron-builder --linux --x64 --arm64"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.0",
+    "typescript": "^5.6.0",
+    "wait-on": "^9.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hasht-net/hasht-desktop.git"
+  },
+  "author": "Ralph Luaces"
+}
