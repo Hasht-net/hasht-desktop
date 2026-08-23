@@ -46,11 +46,17 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
           click: callbacks.onManageBackends,
         },
         ...(serverItems.length
-          ? ([{ type: "separator" as const }, ...serverItems] as MenuItemConstructorOptions[])
+          ? ([
+              { type: "separator" as const },
+              ...serverItems,
+            ] as MenuItemConstructorOptions[])
           : []),
         ...(isMac
           ? []
-          : ([{ type: "separator" as const }, { label: "Quit", accelerator: "Ctrl+Q", click: callbacks.onQuit }] as MenuItemConstructorOptions[])),
+          : ([
+              { type: "separator" as const },
+              { label: "Quit", accelerator: "Ctrl+Q", click: callbacks.onQuit },
+            ] as MenuItemConstructorOptions[])),
       ],
     },
     {
@@ -82,7 +88,13 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
       label: "Window",
       submenu: [
         { role: "minimize" },
-        ...(isMac ? [{ role: "zoom" as const }, { type: "separator" as const }, { role: "front" as const }] : [{ role: "close" as const }]),
+        ...(isMac
+          ? [
+              { role: "zoom" as const },
+              { type: "separator" as const },
+              { role: "front" as const },
+            ]
+          : [{ role: "close" as const }]),
       ],
     },
     {
@@ -90,7 +102,8 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
       submenu: [
         {
           label: "Learn More",
-          click: () => shell.openExternal("https://github.com/Hasht-net/hasht-desktop"),
+          click: () =>
+            shell.openExternal("https://github.com/Hasht-net/hasht-desktop"),
         },
       ],
     },

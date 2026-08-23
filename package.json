@@ -1,7 +1,7 @@
 {
   "name": "hasht-desktop",
   "version": "0.1.0",
-  "description": "Electron desktop shell for the self-hosted chat app \u2014 thin client, loads a user-configured server URL.",
+  "description": "Electron desktop shell for the self-hosted chat app — thin client, loads a user-configured server URL.",
   "main": "dist/main/main.js",
   "private": true,
   "scripts": {
@@ -28,5 +28,5 @@
     "type": "git",
     "url": "git+https://github.com/Hasht-net/hasht-desktop.git"
   },
-  "author": "Ralph Luaces"
+  "author": "Hasht.net"
 }

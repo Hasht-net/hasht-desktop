@@ -1,4 +1,4 @@
-# Maintainer: Ralph Luaces <16159770+raluaces@users.noreply.github.com>
+# Maintainer: Hasht.net <support@hasht.net>
 #
 # Template. The release workflow substitutes @PKGVER@, @SHORT_SHA@ and the two
 # checksums, regenerates .SRCINFO, and pushes the result to AUR.

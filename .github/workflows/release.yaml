@@ -147,9 +147,9 @@ jobs:
           if-no-files-found: error
 
   aur:
-    # Arch has nothing to upload to the release — AUR is a git repo holding a
-    # PKGBUILD that users' helpers build locally. This renders it against the
-    # tarballs the build jobs just published and pushes it.
+    # AUR is a git repo holding a PKGBUILD that users' helpers build locally.
+    # This renders it against the tarballs the build jobs just published;
+    # pushing it is currently disabled below until AUR publishing is set up.
     name: "Publish AUR package"
     needs: build
     if: github.event_name == 'release'
@@ -214,29 +214,29 @@ jobs:
           chown -R builder aur-out
           su builder -c 'cd aur-out && makepkg --printsrcinfo > .SRCINFO'
 
-      - name: "Push to AUR"
-        if: steps.guard.outputs.configured == 'true'
-        env:
-          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          echo "$AUR_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+      # - name: "Push to AUR"
+      #   if: steps.guard.outputs.configured == 'true'
+      #   env:
+      #     AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+      #   run: |
+      #     set -euo pipefail
+      #     mkdir -p ~/.ssh
+      #     echo "$AUR_SSH_KEY" > ~/.ssh/id_ed25519
+      #     chmod 600 ~/.ssh/id_ed25519
+      #     ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
 
-          git config --global user.name "Ralph Luaces"
-          git config --global user.email "16159770+raluaces@users.noreply.github.com"
-          git config --global --add safe.directory '*'
+      #     git config --global user.name "Hasht.net GitHub Actions"
+      #     git config --global user.email "support@hasht.net"
+      #     git config --global --add safe.directory '*'
 
-          git clone ssh://aur@aur.archlinux.org/hasht-desktop-bin.git aur-repo
-          cp aur-out/PKGBUILD aur-out/.SRCINFO aur-repo/
-          cd aur-repo
-          # A re-run of the same release is a no-op rather than an empty commit.
-          if git diff --quiet; then
-            echo "AUR package already up to date"
-            exit 0
-          fi
-          git add PKGBUILD .SRCINFO
-          git commit -m "Update to ${{ github.event.release.tag_name }}"
-          git push
+      #     git clone ssh://aur@aur.archlinux.org/hasht-desktop-bin.git aur-repo
+      #     cp aur-out/PKGBUILD aur-out/.SRCINFO aur-repo/
+      #     cd aur-repo
+      #     # A re-run of the same release is a no-op rather than an empty commit.
+      #     if git diff --quiet; then
+      #       echo "AUR package already up to date"
+      #       exit 0
+      #     fi
+      #     git add PKGBUILD .SRCINFO
+      #     git commit -m "Update to ${{ github.event.release.tag_name }}"
+      #     git push

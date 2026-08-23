@@ -3,9 +3,6 @@ name: "Draft Release"
 # Keeps a draft release open on top of main, recreated on every push so it
 # always reflects exactly what's unreleased. Publishing it manually fires
 # release.yaml to build installers and attach them.
-#
-# Tag is derived from the last release: v0.1.0-beta.2 -> v0.1.0-beta.3. To cut
-# a stable version, edit the draft's tag by hand before publishing.
 
 on:
   workflow_dispatch:
