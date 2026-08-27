@@ -45,7 +45,6 @@ train to keep in sync. Mirrors Mattermost Desktop / Rocket.Chat Desktop.
 
 ## Not yet built
 
-Code signing / notarization secrets in CI, app icons (`build/` mostly still
-placeholder). Deep link handling and `electron-updater` wiring are already
-built (`src/main/desktopAuth.ts`, `src/main/updater.ts`) — don't re-scaffold
-them.
+Code signing / notarization secrets in CI. Deep link handling and
+`electron-updater` wiring are already built (`src/main/desktopAuth.ts`,
+`src/main/updater.ts`) — don't re-scaffold them.

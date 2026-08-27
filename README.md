@@ -37,8 +37,6 @@ no separate frontend release train to keep in sync.
 - Code signing / notarization secrets in CI (macOS builds are ad-hoc signed
   only, Windows builds are unsigned — see the comments in
   `electron-builder.yml`).
-- App icons — `build/tray-icon.png` and the electron-builder `icon` fields
-  are unset; drop real assets in `build/` before shipping.
 
 Deep link handling (`hasht://` protocol) and `electron-updater` wiring are
 already built — see `src/main/desktopAuth.ts` and `src/main/updater.ts`.
