@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Required because electron-builder.yml sets hardenedRuntime: true. Without
+  these, getUserMedia() in a server window silently fails the TCC check in
+  any *signed* build (mic/camera just don't work, no error surfaces).
+
+  This only bites at release: unsigned dev builds (npm run start / dev) run
+  under Terminal's/Electron's own ad-hoc signature and inherit whatever mic
+  permission Terminal already has, so the bug won't reproduce there.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!--
+      Passkeys. Bluetooth backs caBLE (scan-a-QR, authenticate on your phone);
+      the keychain access group is where Chromium's macOS platform
+      authenticator (Touch ID) stores credentials — without it that
+      authenticator isn't offered at all.
+      TODO: $(AppIdentifierPrefix) only resolves against a real Team ID at
+      signing time; revisit when the signing identity is set up.
+    -->
+    <key>com.apple.security.device.bluetooth</key>
+    <true/>
+    <key>keychain-access-groups</key>
+    <array>
+      <string>$(AppIdentifierPrefix)net.hasht.app</string>
+    </array>
+  </dict>
+</plist>

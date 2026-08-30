@@ -1,0 +1,72 @@
+# Maintainer: Hasht.net <support@hasht.net>
+#
+# Template. The release workflow substitutes @PKGVER@, @SHORT_SHA@ and the two
+# checksums, regenerates .SRCINFO, and pushes the result to AUR.
+#
+# A -bin package on purpose: building an Electron app from source on the user's
+# machine takes a long time and still downloads the same prebuilt Electron
+# binary at the end of it.
+
+pkgname=hasht-desktop-bin
+pkgver=@PKGVER@
+pkgrel=1
+pkgdesc="Desktop client for the self-hosted chat app"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Hasht-net/hasht-desktop"
+license=('MIT')
+depends=(
+  'gtk3'
+  'nss'
+  'alsa-lib'
+  'libnotify'
+  'libxss'
+  'libxtst'
+  'at-spi2-core'
+  'libcups'
+  'xdg-utils'
+)
+provides=('hasht-desktop')
+conflicts=('hasht-desktop')
+# Electron ships prebuilt binaries; stripping them breaks the bundle, and
+# there are no debug symbols to split out.
+options=('!strip' '!debug')
+
+source_x86_64=("$pkgname-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/Hasht-$pkgver-@SHORT_SHA@-linux-x64.tar.gz")
+source_aarch64=("$pkgname-$pkgver-aarch64.tar.gz::$url/releases/download/v$pkgver/Hasht-$pkgver-@SHORT_SHA@-linux-arm64.tar.gz")
+sha256sums_x86_64=('@SHA256_X64@')
+sha256sums_aarch64=('@SHA256_ARM64@')
+
+package() {
+  # electron-builder's tarball unpacks to a single hasht-desktop-<version>/ dir.
+  local _src="$srcdir/hasht-desktop-$pkgver"
+
+  install -dm755 "$pkgdir/opt/$pkgname"
+  cp -a "$_src/." "$pkgdir/opt/$pkgname/"
+
+  # Chromium's setuid sandbox refuses to start without this mode, and the app
+  # would otherwise need --no-sandbox.
+  chmod 4755 "$pkgdir/opt/$pkgname/chrome-sandbox"
+
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s "/opt/$pkgname/hasht-desktop" "$pkgdir/usr/bin/hasht-desktop"
+
+  install -Dm644 "$_src/resources/icon.png" \
+    "$pkgdir/usr/share/pixmaps/hasht-desktop.png"
+
+  # MimeType is load-bearing: passkey sign-in hands off to the browser and
+  # comes back on hasht://, which only works if a desktop entry claims
+  # the scheme.
+  install -dm755 "$pkgdir/usr/share/applications"
+  cat > "$pkgdir/usr/share/applications/hasht-desktop.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Hasht
+Comment=Desktop client for the self-hosted chat app
+Exec=hasht-desktop %u
+Icon=hasht-desktop
+Terminal=false
+Categories=Network;InstantMessaging;
+MimeType=x-scheme-handler/hasht;
+StartupWMClass=Hasht
+DESKTOP
+}

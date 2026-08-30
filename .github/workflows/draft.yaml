@@ -1,0 +1,36 @@
+name: "Draft Release"
+
+# Keeps a draft release open on top of main, recreated on every push so it
+# always reflects exactly what's unreleased. Publishing it manually fires
+# release.yaml to build installers and attach them.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+# A burst of merges should only leave one draft standing.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  draft:
+    name: "Draft Release"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: "Draft Release Action"
+        id: draft
+        uses: cssnr/draft-release-action@v0
+        with:
+          semver: prerelease
+          identifier: beta
+          prefix: v
+
+      - name: "Echo Draft URL"
+        run: |
+          echo "url: ${{ steps.draft.outputs.url }}"
