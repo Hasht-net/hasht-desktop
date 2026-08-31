@@ -1,6 +1,6 @@
 {
   "name": "hasht-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Electron desktop shell for the self-hosted chat app — thin client, loads a user-configured server URL.",
   "main": "dist/main/main.js",
   "private": true,
