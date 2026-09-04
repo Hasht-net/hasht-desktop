@@ -28,6 +28,7 @@ import {
 } from "./desktopAuth";
 import { getServerWindow } from "./windows";
 import { initAutoUpdater } from "./updater";
+import { openScreenCaptureSettings, screenCaptureStatus } from "./screenShare";
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() only schedules a quit; evaluation would continue and whenReady
@@ -175,6 +176,11 @@ app.whenReady().then(() => {
     pendingAuth.delete(serverId);
     return auth;
   });
+
+  // Screen recording is granted to the app by the OS, not to the page, so the
+  // renderer can neither read the status nor raise the prompt. It asks us.
+  ipcMain.handle("screen-capture:status", () => screenCaptureStatus());
+  ipcMain.handle("screen-capture:open-settings", () => openScreenCaptureSettings());
 
   ipcMain.on("unread-count-changed", (event, count: number) => {
     const serverId = serverIdForWebContents(event.sender.id);

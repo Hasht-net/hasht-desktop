@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld("chatDesktop", {
   // a session the page collects via takePendingAuth on its next load.
   startPasskeySignIn: () => ipcRenderer.invoke("desktop-auth:start"),
   takePendingAuth: () => ipcRenderer.invoke("desktop-auth:take"),
+  // Screen sharing. The capture itself goes through getDisplayMedia (the main
+  // process installs the handler that answers it); these two cover the part
+  // the page can't see — macOS grants screen recording to the app, and neither
+  // the status nor the way back from a denial is reachable from a web page.
+  getScreenCaptureStatus: () => ipcRenderer.invoke("screen-capture:status"),
+  openScreenCaptureSettings: () =>
+    ipcRenderer.invoke("screen-capture:open-settings"),
 });
 
 // The app already renders unread *channel* count (not message count) into
