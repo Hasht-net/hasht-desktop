@@ -63,9 +63,11 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
       // A sandboxed preload can't import from main, so TITLEBAR_HEIGHT is
       // passed as an argv flag instead of being duplicated there.
       additionalArguments: [`--titlebar-height=${TITLEBAR_HEIGHT}`],
-      // A hidden window is still the live connection to the server; letting
-      // Chromium throttle its timers delays notifications and reconnects.
-      backgroundThrottling: false,
+      // Left on. Disabling it kept the page permanently visibility:"visible"
+      // even when hidden to the tray, so CSS animations painted forever at
+      // ~40% CPU. Throttling clamps timers but never touches WebSocket
+      // delivery, so events and reconnects still arrive.
+      backgroundThrottling: true,
     },
   });
 
