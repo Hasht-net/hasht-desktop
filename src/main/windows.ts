@@ -2,6 +2,7 @@ import { BrowserWindow, session, shell } from "electron";
 import path from "node:path";
 import type { ServerEntry } from "./serverStore";
 import { clearUnread } from "./tray";
+import { enableScreenShare } from "./screenShare";
 
 // Height of the draggable strip the page reserves at the top of the window.
 // macOS traffic lights are small and inset (28px fits); Windows caption
@@ -83,6 +84,9 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
   serverSession.setPermissionCheckHandler((_contents, permission, requestingOrigin) =>
     isPermitted(permission, requestingOrigin, entry.url),
   );
+
+  // Without this `getDisplayMedia()` is refused before any picker appears.
+  enableScreenShare(serverSession);
 
   win.loadURL(entry.url);
 
@@ -176,7 +180,15 @@ function isPermitted(
   requestingUrl: string | undefined,
   serverUrl: string,
 ): boolean {
-  if (permission !== "media" && permission !== "notifications") return false;
+  // "display-capture" is screen sharing. The handler installed by
+  // enableScreenShare is what actually picks the surface — this only decides
+  // whether the origin may ask at all, same as it does for mic and camera.
+  if (
+    permission !== "media" &&
+    permission !== "notifications" &&
+    permission !== "display-capture"
+  )
+    return false;
   return isSameOrigin(requestingUrl ?? "", serverUrl);
 }
 

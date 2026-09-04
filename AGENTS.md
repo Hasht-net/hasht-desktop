@@ -21,6 +21,9 @@ train to keep in sync. Mirrors Mattermost Desktop / Rocket.Chat Desktop.
   `hasht://` deep-link scheme; registered/handled from `main.ts`.
 - `src/main/updater.ts` — `electron-updater` wiring against the GitHub
   releases feed configured in `electron-builder.yml`'s `publish:` block.
+- `src/main/screenShare.ts` — display-media handler (Electron refuses
+  `getDisplayMedia` without one), preferring the OS picker; plus the macOS
+  screen-recording status/settings the page can't reach itself.
 - `src/preload/serverPreload.ts` — sandboxed bridge into the server's own
   page. Reads unread *channel* count (not message count) from
   `document.title`'s existing `(N) Title` format (see `hasht` repo's
