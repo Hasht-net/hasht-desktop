@@ -4,6 +4,7 @@ import { listServers, ServerEntry } from "./serverStore";
 export interface AppMenuCallbacks {
   onSwitchServer: (id: string) => void;
   onManageBackends: () => void;
+  onCheckForUpdates: () => void;
   onQuit: () => void;
 }
 
@@ -27,6 +28,10 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
             label: app.name,
             submenu: [
               { role: "about" as const },
+              {
+                label: "Check for Updates…",
+                click: callbacks.onCheckForUpdates,
+              },
               { type: "separator" as const },
               { role: "hide" as const },
               { role: "hideOthers" as const },
@@ -100,6 +105,15 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
     {
       role: "help",
       submenu: [
+        ...(isMac
+          ? []
+          : [
+              {
+                label: "Check for Updates…",
+                click: callbacks.onCheckForUpdates,
+              },
+              { type: "separator" as const },
+            ]),
         {
           label: "Learn More",
           click: () =>
