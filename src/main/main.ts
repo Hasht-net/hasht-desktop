@@ -136,7 +136,12 @@ app.whenReady().then(() => {
     "picker:add-server",
     async (_e, rawUrl: string, name: string) => {
       const url = await resolveServerUrl(rawUrl); // throws with a friendly message
-      const entry = addServer(url, name);
+      // Adding a server that's already in the list (common with the one-click
+      // hosted option) just switches to it rather than making a duplicate.
+      const existing = listServers().find(
+        (s) => new URL(s.url).origin === new URL(url).origin,
+      );
+      const entry = existing ?? addServer(url, name);
       connectToServer(entry.id);
       return entry;
     },

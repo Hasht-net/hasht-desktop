@@ -2,123 +2,264 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Manage backends</title>
+    <title>Welcome to Hasht</title>
     <style>
-      body {
-        font-family: -apple-system, "Segoe UI", sans-serif;
-        margin: 0;
-        padding: 24px;
-        background: #1e1f22;
-        color: #dcddde;
+      :root {
+        --bg: #131417;
+        --surface: #1c1d21;
+        --surface-hover: #23242a;
+        --border: #2c2e35;
+        --text: #e4e6eb;
+        --text-muted: #9aa0ab;
+        --brand: #6b5cff;
+        --brand-hover: #7d70ff;
+        --danger: #f27a7a;
       }
-      h1 {
-        font-size: 16px;
-        margin: 0 0 16px;
-      }
-      input {
-        width: 100%;
+      * {
         box-sizing: border-box;
-        padding: 8px 10px;
-        border-radius: 6px;
-        border: 1px solid #3a3b3e;
-        background: #2b2d31;
-        color: inherit;
-        margin-bottom: 10px;
-        font-size: 14px;
       }
-      button {
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        font-family:
+          -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background:
+          radial-gradient(
+            60% 50% at 50% 0%,
+            rgba(107, 92, 255, 0.16),
+            transparent 70%
+          ),
+          var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 28px;
+        overflow-y: auto;
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 28px;
+        text-align: center;
+      }
+      .brand img {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        filter: drop-shadow(0 10px 28px rgba(107, 92, 255, 0.35));
+      }
+      .brand h1 {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0;
+      }
+      .brand p {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+      .wrap {
         width: 100%;
-        padding: 8px 10px;
-        border-radius: 6px;
-        border: none;
-        background: #5865f2;
-        color: white;
-        font-size: 14px;
+        max-width: 380px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin: 14px 0 2px;
+      }
+
+      /* Existing servers */
+      .server {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface);
         cursor: pointer;
       }
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
+      .server:hover {
+        background: var(--surface-hover);
       }
-      #error {
-        color: #f88;
-        font-size: 13px;
-        min-height: 18px;
-        margin-top: 8px;
+      .server .meta {
+        flex: 1;
+        min-width: 0;
       }
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 16px 0 0;
+      .server .name {
+        font-weight: 600;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-      li {
+      .server .url {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .server .icon-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 12px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        opacity: 0;
+      }
+      .server:hover .icon-btn {
+        opacity: 1;
+      }
+      .server .icon-btn:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .server .icon-btn.danger:hover {
+        color: var(--danger);
+      }
+
+      /* Choice cards */
+      .card {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 16px;
+        cursor: pointer;
+        transition: border-color 0.12s ease;
+      }
+      .card:hover {
+        border-color: var(--brand);
+      }
+      .card.selected {
+        border-color: var(--brand);
+        background: rgba(107, 92, 255, 0.08);
+      }
+      .card .card-title {
+        font-weight: 600;
+        font-size: 14px;
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 10px;
-        border-radius: 6px;
       }
-      li:hover {
-        background: #2b2d31;
-      }
-      li .label {
-        flex: 1;
-        cursor: pointer;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      li .rename,
-      li .remove {
-        width: auto;
-        padding: 4px 8px;
+      .card .card-sub {
         font-size: 12px;
-        background: transparent;
-        opacity: 0;
+        color: var(--text-muted);
+        margin-top: 4px;
       }
-      li .rename {
-        color: #9aa0ff;
-      }
-      li .remove {
-        color: #f88;
-      }
-      li:hover .rename,
-      li:hover .remove {
-        opacity: 1;
-      }
-      li .label-text {
-        font-weight: 500;
-      }
-      li .label-url {
-        opacity: 0.6;
-        font-size: 12px;
-        display: block;
-      }
-      h2 {
-        font-size: 12px;
+      .card .badge {
+        font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        opacity: 0.6;
-        margin: 20px 0 6px;
+        background: var(--brand);
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 999px;
       }
-      #existing:empty::before {
-        content: "No backends configured yet.";
-        display: block;
-        opacity: 0.5;
+      .card-body {
+        margin-top: 12px;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card.selected .card-body {
+        display: flex;
+      }
+
+      input {
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: inherit;
         font-size: 13px;
-        padding: 8px 10px;
+      }
+      input:focus {
+        outline: none;
+        border-color: var(--brand);
+      }
+      button.primary {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background: var(--brand);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.primary:hover {
+        background: var(--brand-hover);
+      }
+      button.primary:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      #error {
+        color: var(--danger);
+        font-size: 12.5px;
+        min-height: 16px;
+        text-align: center;
       }
     </style>
   </head>
   <body>
-    <h1>Manage backends</h1>
-    <h2>Connected</h2>
-    <ul id="existing"></ul>
-    <h2>Add a backend</h2>
-    <input id="url" type="text" placeholder="chat.example.com" autofocus />
-    <input id="name" type="text" placeholder="Label (optional)" />
-    <button id="connect">Connect</button>
-    <div id="error"></div>
+    <div class="brand">
+      <img src="logo.png" alt="Hasht" />
+      <div>
+        <h1 id="headline">Welcome to Hasht</h1>
+        <p id="tagline">Choose how you want to connect.</p>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <h2 id="servers-heading" hidden>Your servers</h2>
+      <div id="servers"></div>
+
+      <h2 id="add-heading">Connect</h2>
+
+      <div class="card" id="card-hosted" data-choice="hosted">
+        <div class="card-title">
+          Hasht Cloud <span class="badge">Hosted</span>
+        </div>
+        <div class="card-sub">
+          Sign in at chat.hasht.net — nothing to run yourself.
+        </div>
+        <div class="card-body">
+          <button class="primary" id="hosted-connect">Continue to Hasht</button>
+        </div>
+      </div>
+
+      <div class="card" id="card-selfhosted" data-choice="selfhosted">
+        <div class="card-title">Self-hosted</div>
+        <div class="card-sub">
+          Connect to a Hasht server you or your team runs.
+        </div>
+        <div class="card-body">
+          <input id="url" type="text" placeholder="chat.example.com" />
+          <input id="name" type="text" placeholder="Label (optional)" />
+          <button class="primary" id="selfhosted-connect">Connect</button>
+        </div>
+      </div>
+
+      <div id="error"></div>
+    </div>
+
     <script src="picker.js"></script>
   </body>
 </html>

@@ -34,8 +34,10 @@ train to keep in sync. Mirrors Mattermost Desktop / Rocket.Chat Desktop.
   `frontend/src/App.vue`) — no frontend changes needed. Keep this bridge
   minimal; it's the only thing standing between an untrusted self-hosted
   server and the main process.
-- `src/preload/pickerPreload.ts` + `src/renderer-picker/` — the "add a
-  server" screen (shown on first run and from the tray menu).
+- `src/preload/pickerPreload.ts` + `src/renderer-picker/` — the welcome /
+  onboarding screen (shown on first run and from the tray menu): pick Hasht
+  Cloud (chat.hasht.net) or enter a self-hosted server, plus the list of
+  already-added servers.
 - `electron-builder.yml` — mac (dmg/zip), Windows (nsis), Linux
   (AppImage/deb/rpm), each x64+arm64. Signing/notarization via env vars, not
   checked in.

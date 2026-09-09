@@ -76,7 +76,7 @@ function rebuildMenu(opts: {
       click: () => opts.onSwitchServer(s.id),
     })),
     { type: "separator" as const },
-    { label: "Manage Backends…", click: opts.onAddServer },
+    { label: "Manage Servers…", click: opts.onAddServer },
     { type: "separator" as const },
     { label: "Quit", click: opts.onQuit },
   ]);

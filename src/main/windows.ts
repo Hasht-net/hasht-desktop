@@ -149,10 +149,11 @@ export function openPickerWindow(): BrowserWindow {
   }
 
   pickerWindow = new BrowserWindow({
-    width: 420,
-    height: 520,
+    width: 460,
+    height: 560,
     resizable: false,
-    title: "Manage backends",
+    title: "Welcome to Hasht",
+    backgroundColor: "#131417",
     webPreferences: {
       preload: path.join(__dirname, "../preload/pickerPreload.js"),
       contextIsolation: true,
