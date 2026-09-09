@@ -25,7 +25,7 @@ import {
   beginBrowserSignIn,
   completeBrowserSignIn,
   deepLinkFromArgv,
-} from "./desktopAuth";
+} from "./nativeAuth";
 import { getServerWindow } from "./windows";
 import { initAutoUpdater } from "./updater";
 import { openScreenCaptureSettings, screenCaptureStatus } from "./screenShare";
@@ -160,16 +160,20 @@ app.whenReady().then(() => {
     if (win) win.setTitle(name.trim() || win.getTitle());
   });
 
-  // Started from the app's own login screen: the shell can't run a WebAuthn
-  // ceremony, so it hands off to the browser.
-  ipcMain.handle("desktop-auth:start", async (event) => {
+  // Started from the app's own login screen where in-shell WebAuthn is broken
+  // (macOS): hand off to the system browser. Elsewhere the page uses the
+  // normal in-page passkey ceremony and never calls this.
+  ipcMain.handle("native-auth:start", async (event) => {
+    if (process.platform !== "darwin") {
+      throw new Error("Browser sign-in is only used on macOS.");
+    }
     const serverId = serverIdForWebContents(event.sender.id);
     const entry = listServers().find((s) => s.id === serverId);
     if (!entry) throw new Error("Unknown server.");
     await beginBrowserSignIn(entry);
   });
 
-  ipcMain.handle("desktop-auth:take", (event) => {
+  ipcMain.handle("native-auth:take", (event) => {
     const serverId = serverIdForWebContents(event.sender.id);
     if (!serverId) return null;
     const auth = pendingAuth.get(serverId) ?? null;

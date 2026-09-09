@@ -7,11 +7,15 @@ import { contextBridge, ipcRenderer } from "electron";
 // exposing ipcRenderer/Node directly to the renderer.
 contextBridge.exposeInMainWorld("chatDesktop", {
   isDesktopApp: true,
-  // Passkeys can't run in Electron, so the web app calls this instead of
-  // starting a ceremony that would hang; the browser does it and hands back
-  // a session the page collects via takePendingAuth on its next load.
-  startPasskeySignIn: () => ipcRenderer.invoke("desktop-auth:start"),
-  takePendingAuth: () => ipcRenderer.invoke("desktop-auth:take"),
+  // Only macOS Electron can't run an in-page WebAuthn ceremony; Windows/Linux
+  // use the normal passkey flow. The web app checks this before offering the
+  // browser-handoff button.
+  needsBrowserSignIn: process.platform === "darwin",
+  // macOS only: the web app calls this instead of starting a ceremony that
+  // would hang; the browser runs it and hands back a session the page collects
+  // via takePendingAuth on its next load.
+  startPasskeySignIn: () => ipcRenderer.invoke("native-auth:start"),
+  takePendingAuth: () => ipcRenderer.invoke("native-auth:take"),
   // Screen sharing. The capture itself goes through getDisplayMedia (the main
   // process installs the handler that answers it); these two cover the part
   // the page can't see — macOS grants screen recording to the app, and neither
