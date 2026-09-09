@@ -1,7 +1,8 @@
-import { dialog, net, shell } from "electron";
+import { net, shell } from "electron";
 import { createHash, randomBytes } from "node:crypto";
 import os from "node:os";
 import type { ServerEntry } from "./serverStore";
+import { showHandoffCodeWindow } from "./windows";
 
 export const PROTOCOL = "hasht";
 
@@ -53,27 +54,15 @@ export async function beginBrowserSignIn(entry: ServerEntry): Promise<void> {
   };
   pending.set(request_id, { serverId: entry.id, serverUrl: entry.url, verifier });
 
-  // Show the code here so the user can check it against the one the browser
-  // shows before they approve — a request they were lured into approving then
-  // looks wrong. Native dialog, not the (untrusted) server page.
-  const { response } = await dialog.showMessageBox({
-    type: "info",
-    buttons: ["Open browser", "Cancel"],
-    defaultId: 0,
-    cancelId: 1,
-    message: "Continue sign-in in your browser",
-    detail: `Your browser will ask you to confirm this code:\n\n${formatMatchCode(
-      match_code,
-    )}`,
-  });
-  if (response !== 0) {
-    pending.delete(request_id);
-    return;
-  }
-
   const target = new URL(entry.url);
   target.searchParams.set("native_auth", request_id);
   await shell.openExternal(target.toString());
+
+  // A small window that stays up showing the code, so the user can check it
+  // against the one the browser asks them to confirm — a request they were
+  // lured into approving then looks wrong. Closed when the deep link comes
+  // back (see main.ts). Not a modal dialog, which vanishes on the first click.
+  showHandoffCodeWindow(formatMatchCode(match_code));
 }
 
 /**

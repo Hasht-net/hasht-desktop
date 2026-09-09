@@ -175,6 +175,65 @@ export function closePickerWindow(): void {
   pickerWindow?.close();
 }
 
+let handoffCodeWindow: BrowserWindow | null = null;
+
+// A small always-on-top window showing the browser-handoff match code while the
+// user is off in their browser. Stays up (unlike a modal dialog) so the code is
+// there to compare when the browser asks them to confirm it. Auto-closed by
+// main.ts once the deep link returns.
+export function showHandoffCodeWindow(code: string): void {
+  closeHandoffCodeWindow();
+  handoffCodeWindow = new BrowserWindow({
+    width: 360,
+    height: 280,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    title: "Signing in",
+    backgroundColor: "#131417",
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+  });
+  handoffCodeWindow.setMenuBarVisibility(false);
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    :root{color-scheme:dark}
+    body{margin:0;height:100vh;box-sizing:border-box;padding:26px 24px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;
+      background:#131417;color:#dbdee1;font:13.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    h1{margin:0;font-size:15px;font-weight:600}
+    p{margin:0;color:#949ba4;font-size:12px}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:30px;font-weight:700;letter-spacing:.16em;color:#fff;
+      background:#1e1f24;border:1px solid #2a2b31;border-radius:10px;padding:12px 20px}
+    button{margin-top:4px;background:none;border:1px solid #3a3b42;color:#dbdee1;border-radius:8px;
+      padding:7px 18px;font-size:12.5px;cursor:pointer}
+    button:hover{background:#1e1f24}
+  </style><body>
+    <h1>Continue in your browser</h1>
+    <p>Confirm this code there:</p>
+    <div class="code">${code}</div>
+    <p>Keep this window open until you're signed in.</p>
+    <button onclick="window.close()">Cancel</button>
+  </body>`;
+  void handoffCodeWindow.loadURL(
+    `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
+  );
+  // Safety net: the server-side request expires within 10 min, so don't leave
+  // this window around if the user abandons the flow without cancelling.
+  const timeout = setTimeout(closeHandoffCodeWindow, 12 * 60 * 1000);
+  handoffCodeWindow.on("closed", () => {
+    clearTimeout(timeout);
+    handoffCodeWindow = null;
+  });
+}
+
+export function closeHandoffCodeWindow(): void {
+  if (handoffCodeWindow && !handoffCodeWindow.isDestroyed()) {
+    handoffCodeWindow.destroy();
+  }
+  handoffCodeWindow = null;
+}
+
 function isPermitted(
   permission: string,
   requestingUrl: string | undefined,
