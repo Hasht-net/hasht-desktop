@@ -170,7 +170,7 @@ app.whenReady().then(() => {
     const serverId = serverIdForWebContents(event.sender.id);
     const entry = listServers().find((s) => s.id === serverId);
     if (!entry) throw new Error("Unknown server.");
-    await beginBrowserSignIn(entry);
+    return beginBrowserSignIn(entry);
   });
 
   ipcMain.handle("native-auth:take", (event) => {

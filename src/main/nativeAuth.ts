@@ -1,4 +1,4 @@
-import { dialog, net, shell } from "electron";
+import { net, shell } from "electron";
 import { createHash, randomBytes } from "node:crypto";
 import os from "node:os";
 import type { ServerEntry } from "./serverStore";
@@ -25,8 +25,11 @@ export interface AuthResult {
   auth: unknown;
 }
 
-/** Opens the browser leg. Resolves once the browser has been launched. */
-export async function beginBrowserSignIn(entry: ServerEntry): Promise<void> {
+/** Opens the browser leg. Returns the match code for the app to show the user,
+ *  so they can check it against the one the browser asks them to confirm. */
+export async function beginBrowserSignIn(
+  entry: ServerEntry,
+): Promise<{ match_code: string }> {
   const verifier = randomBytes(32).toString("hex");
   const challenge = createHash("sha256").update(verifier).digest("hex");
 
@@ -53,27 +56,13 @@ export async function beginBrowserSignIn(entry: ServerEntry): Promise<void> {
   };
   pending.set(request_id, { serverId: entry.id, serverUrl: entry.url, verifier });
 
-  // Show the code here so the user can check it against the one the browser
-  // shows before they approve — a request they were lured into approving then
-  // looks wrong. Native dialog, not the (untrusted) server page.
-  const { response } = await dialog.showMessageBox({
-    type: "info",
-    buttons: ["Open browser", "Cancel"],
-    defaultId: 0,
-    cancelId: 1,
-    message: "Continue sign-in in your browser",
-    detail: `Your browser will ask you to confirm this code:\n\n${formatMatchCode(
-      match_code,
-    )}`,
-  });
-  if (response !== 0) {
-    pending.delete(request_id);
-    return;
-  }
-
   const target = new URL(entry.url);
   target.searchParams.set("native_auth", request_id);
-  await shell.openExternal(target.toString());
+  // Return the code first so the app can show it, then open the browser a beat
+  // later — otherwise the browser window covers the code before it's read.
+  setTimeout(() => void shell.openExternal(target.toString()), 1500);
+
+  return { match_code };
 }
 
 /**
@@ -125,8 +114,4 @@ export async function completeBrowserSignIn(
 /** Pulls a deep link out of argv, which is how Windows and Linux deliver it. */
 export function deepLinkFromArgv(argv: string[]): string | undefined {
   return argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
-}
-
-function formatMatchCode(code: string): string {
-  return code.replace(/(.{4})(?=.)/g, "$1 ");
 }

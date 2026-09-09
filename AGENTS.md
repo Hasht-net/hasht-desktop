@@ -21,6 +21,8 @@ train to keep in sync. Mirrors Mattermost Desktop / Rocket.Chat Desktop.
   over the `hasht://` deep-link scheme, registered/handled from `main.ts`. Only
   offered on macOS, where in-shell WebAuthn is broken (`needsBrowserSignIn` in
   `serverPreload.ts`); Windows/Linux use the normal in-page passkey flow.
+  `native-auth:start` returns the match code, which the server page shows the
+  user to check against the browser's.
 - `src/main/updater.ts` — `electron-updater` wiring against the GitHub
   releases feed configured in `electron-builder.yml`'s `publish:` block.
 - `src/main/screenShare.ts` — display-media handler (Electron refuses
