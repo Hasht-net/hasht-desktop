@@ -27,7 +27,7 @@ import {
   deepLinkFromArgv,
 } from "./nativeAuth";
 import { getServerWindow } from "./windows";
-import { initAutoUpdater } from "./updater";
+import { initAutoUpdater, checkForUpdatesFromMenu } from "./updater";
 import { openScreenCaptureSettings, screenCaptureStatus } from "./screenShare";
 
 if (!app.requestSingleInstanceLock()) {
@@ -114,6 +114,7 @@ const trayCallbacks = {
 const appMenuCallbacks = {
   onSwitchServer: connectToServer,
   onManageBackends: () => openPickerWindow(),
+  onCheckForUpdates: () => void checkForUpdatesFromMenu(),
   onQuit: () => app.quit(),
 };
 
