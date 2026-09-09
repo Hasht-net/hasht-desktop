@@ -16,7 +16,6 @@ import {
   openPickerWindow,
   closePickerWindow,
   closeServerWindow,
-  closeHandoffCodeWindow,
   serverIdForWebContents,
   setQuitting,
 } from "./windows";
@@ -76,7 +75,6 @@ async function handleDeepLink(link: string): Promise<void> {
   try {
     const result = await completeBrowserSignIn(link);
     if (!result) return;
-    closeHandoffCodeWindow();
     pendingAuth.set(result.serverId, result.auth);
 
     const entry = listServers().find((s) => s.id === result.serverId);
@@ -87,7 +85,6 @@ async function handleDeepLink(link: string): Promise<void> {
     win.show();
     win.focus();
   } catch (err) {
-    closeHandoffCodeWindow();
     dialog.showErrorBox("Sign-in failed", (err as Error).message);
   }
 }
@@ -173,7 +170,7 @@ app.whenReady().then(() => {
     const serverId = serverIdForWebContents(event.sender.id);
     const entry = listServers().find((s) => s.id === serverId);
     if (!entry) throw new Error("Unknown server.");
-    await beginBrowserSignIn(entry);
+    return beginBrowserSignIn(entry);
   });
 
   ipcMain.handle("native-auth:take", (event) => {

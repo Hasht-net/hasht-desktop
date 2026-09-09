@@ -2,7 +2,6 @@ import { net, shell } from "electron";
 import { createHash, randomBytes } from "node:crypto";
 import os from "node:os";
 import type { ServerEntry } from "./serverStore";
-import { showHandoffCodeWindow } from "./windows";
 
 export const PROTOCOL = "hasht";
 
@@ -26,8 +25,11 @@ export interface AuthResult {
   auth: unknown;
 }
 
-/** Opens the browser leg. Resolves once the browser has been launched. */
-export async function beginBrowserSignIn(entry: ServerEntry): Promise<void> {
+/** Opens the browser leg. Returns the match code for the app to show the user,
+ *  so they can check it against the one the browser asks them to confirm. */
+export async function beginBrowserSignIn(
+  entry: ServerEntry,
+): Promise<{ match_code: string }> {
   const verifier = randomBytes(32).toString("hex");
   const challenge = createHash("sha256").update(verifier).digest("hex");
 
@@ -58,11 +60,7 @@ export async function beginBrowserSignIn(entry: ServerEntry): Promise<void> {
   target.searchParams.set("native_auth", request_id);
   await shell.openExternal(target.toString());
 
-  // A small window that stays up showing the code, so the user can check it
-  // against the one the browser asks them to confirm — a request they were
-  // lured into approving then looks wrong. Closed when the deep link comes
-  // back (see main.ts). Not a modal dialog, which vanishes on the first click.
-  showHandoffCodeWindow(formatMatchCode(match_code));
+  return { match_code };
 }
 
 /**
@@ -114,8 +112,4 @@ export async function completeBrowserSignIn(
 /** Pulls a deep link out of argv, which is how Windows and Linux deliver it. */
 export function deepLinkFromArgv(argv: string[]): string | undefined {
   return argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
-}
-
-function formatMatchCode(code: string): string {
-  return code.replace(/(.{4})(?=.)/g, "$1 ");
 }
