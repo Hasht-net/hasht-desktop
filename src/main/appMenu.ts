@@ -38,10 +38,10 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
         ]
       : []),
     {
-      label: "Backends",
+      label: "Servers",
       submenu: [
         {
-          label: "Manage Backends…",
+          label: "Manage Servers…",
           accelerator: "CmdOrCtrl+K",
           click: callbacks.onManageBackends,
         },
