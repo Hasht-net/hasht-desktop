@@ -58,7 +58,9 @@ export async function beginBrowserSignIn(
 
   const target = new URL(entry.url);
   target.searchParams.set("native_auth", request_id);
-  await shell.openExternal(target.toString());
+  // Return the code first so the app can show it, then open the browser a beat
+  // later — otherwise the browser window covers the code before it's read.
+  setTimeout(() => void shell.openExternal(target.toString()), 1500);
 
   return { match_code };
 }
