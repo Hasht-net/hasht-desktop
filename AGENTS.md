@@ -17,8 +17,10 @@ train to keep in sync. Mirrors Mattermost Desktop / Rocket.Chat Desktop.
   never credentials — each server keeps its own auth (a bearer token in that
   session partition's localStorage), isolated per partition.
 - `src/main/tray.ts` — tray icon/menu, per-server unread badge counts.
-- `src/main/desktopAuth.ts` — browser-handoff passkey sign-in over the
-  `hasht://` deep-link scheme; registered/handled from `main.ts`.
+- `src/main/nativeAuth.ts` — browser-handoff passkey sign-in (`/api/auth/native/*`)
+  over the `hasht://` deep-link scheme, registered/handled from `main.ts`. Only
+  offered on macOS, where in-shell WebAuthn is broken (`needsBrowserSignIn` in
+  `serverPreload.ts`); Windows/Linux use the normal in-page passkey flow.
 - `src/main/updater.ts` — `electron-updater` wiring against the GitHub
   releases feed configured in `electron-builder.yml`'s `publish:` block.
 - `src/main/screenShare.ts` — display-media handler (Electron refuses
@@ -49,5 +51,5 @@ train to keep in sync. Mirrors Mattermost Desktop / Rocket.Chat Desktop.
 ## Not yet built
 
 Code signing / notarization secrets in CI. Deep link handling and
-`electron-updater` wiring are already built (`src/main/desktopAuth.ts`,
+`electron-updater` wiring are already built (`src/main/nativeAuth.ts`,
 `src/main/updater.ts`) — don't re-scaffold them.

@@ -21,7 +21,7 @@ no separate frontend release train to keep in sync.
   own session partition (isolated storage — auth is a bearer token in that
   partition's localStorage, not a cookie — mirrors Mattermost's per-server
   renderer); `tray.ts` owns the tray icon/menu/badge; `serverStore.ts`
-  persists the server list via `electron-store`; `desktopAuth.ts` handles the
+  persists the server list via `electron-store`; `nativeAuth.ts` handles the
   `hasht://` deep-link browser sign-in handoff; `updater.ts` wires up
   `electron-updater` against the GitHub releases feed.
 - `src/preload/` — sandboxed preload scripts, the only bridge between a
@@ -39,7 +39,7 @@ no separate frontend release train to keep in sync.
   `electron-builder.yml`).
 
 Deep link handling (`hasht://` protocol) and `electron-updater` wiring are
-already built — see `src/main/desktopAuth.ts` and `src/main/updater.ts`.
+already built — see `src/main/nativeAuth.ts` and `src/main/updater.ts`.
 
 ## Develop
 
