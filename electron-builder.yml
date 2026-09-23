@@ -29,6 +29,12 @@ mac:
       arch: [x64, arm64]
     - target: zip
       arch: [x64, arm64]
+  # electron-builder drops the arch suffix from the x64 filename by default
+  # (it's treated as "the default arch"), so the Intel build ends up as an
+  # unlabeled `Hasht-<version>.dmg` sitting next to the clearly-labeled
+  # `Hasht-<version>-arm64.dmg` — easy to grab by mistake on an Apple Silicon
+  # Mac and get the "needs Rosetta" prompt. Force the arch onto every name.
+  artifactName: "${productName}-${version}-${arch}.${ext}"
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist

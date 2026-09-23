@@ -178,9 +178,11 @@ async function checkForMacUpdate(opts: { manual: boolean }): Promise<void> {
     return;
   }
 
-  // Artifact names look like `Hasht-0.1.4-<sha>-mac-arm64.dmg`.
+  // Artifact names look like `Hasht-0.1.4-arm64.dmg` (electron-builder.yml
+  // forces the arch suffix onto every mac dmg, x64 included, so there's no
+  // "default" filename that's missing it).
   const asset = release.assets.find(
-    (a) => a.name.includes(`mac-${process.arch}`) && a.name.endsWith(".dmg"),
+    (a) => a.name.endsWith(`-${process.arch}.dmg`),
   );
   if (!asset) {
     if (manual) {
