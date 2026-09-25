@@ -25,6 +25,30 @@ contextBridge.exposeInMainWorld("chatDesktop", {
     ipcRenderer.invoke("screen-capture:open-settings"),
 });
 
+// Windows/Linux run WebAuthn in-shell, but the OS picker it opens can't see
+// passkeys stored in a password manager's browser extension (1Password,
+// etc.) — that extension isn't loaded in Electron. If the in-shell ceremony
+// fails, retry it as a browser handoff instead of just erroring out. Left
+// alone on macOS, which already always uses the handoff.
+if (process.platform !== "darwin") {
+  const script = document.createElement("script");
+  script.textContent = `(() => {
+    if (!navigator.credentials) return;
+    const withFallback = (native) => async (options) => {
+      try {
+        return await native(options);
+      } catch (err) {
+        await window.chatDesktop.startPasskeySignIn();
+        return new Promise(() => {}); // superseded by the reload on success
+      }
+    };
+    navigator.credentials.get = withFallback(navigator.credentials.get.bind(navigator.credentials));
+    navigator.credentials.create = withFallback(navigator.credentials.create.bind(navigator.credentials));
+  })();`;
+  document.documentElement.appendChild(script);
+  script.remove();
+}
+
 // The app already renders unread *channel* count (not message count) into
 // document.title as "(N) ..." (see frontend/src/App.vue) for the browser-tab
 // case. Reuse that signal for the tray badge/icon instead of asking the web
