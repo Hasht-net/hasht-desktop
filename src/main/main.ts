@@ -166,13 +166,8 @@ app.whenReady().then(() => {
     if (win) win.setTitle(name.trim() || win.getTitle());
   });
 
-  // Started from the app's own login screen where in-shell WebAuthn is broken
-  // (macOS): hand off to the system browser. Elsewhere the page uses the
-  // normal in-page passkey ceremony and never calls this.
+  // Started from the app's own login screen: hands off to the system browser.
   ipcMain.handle("native-auth:start", async (event) => {
-    if (process.platform !== "darwin") {
-      throw new Error("Browser sign-in is only used on macOS.");
-    }
     const serverId = serverIdForWebContents(event.sender.id);
     const entry = listServers().find((s) => s.id === serverId);
     if (!entry) throw new Error("Unknown server.");
