@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: "Draft Release Action"
         id: draft
-        uses: cssnr/draft-release-action@v0
+        uses: cssnr/draft-release-action@9751da3e14f4e2c55d2ee3d6f00413b625772a45 # v0.1.2
         with:
           semver: prerelease
           identifier: beta
