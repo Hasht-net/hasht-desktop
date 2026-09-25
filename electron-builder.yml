@@ -51,6 +51,9 @@ win:
   target:
     - target: nsis
       arch: [x64, arm64]
+  # Explicit instead of letting electron-builder auto-convert icon.png: the
+  # auto-generated .ico looked pixelated at Start Menu size.
+  icon: build/icon.ico
   # Code signing: set CSC_LINK / CSC_KEY_PASSWORD (or use Azure Trusted
   # Signing) in CI — unsigned builds trigger SmartScreen warnings.
 
