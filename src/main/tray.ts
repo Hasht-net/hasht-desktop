@@ -68,6 +68,10 @@ function rebuildMenu(opts: {
   if (!tray) return;
   const servers: ServerEntry[] = listServers();
   const menu = Menu.buildFromTemplate([
+    // No About dialog reachable from the login screen — this is the only way
+    // to check which build is actually running.
+    { label: `Hasht ${app.getVersion()}`, enabled: false },
+    { type: "separator" as const },
     ...servers.map((s) => ({
       label:
         (unreadByServer.get(s.id) ?? 0) > 0
