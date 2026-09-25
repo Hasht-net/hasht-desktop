@@ -7,13 +7,10 @@ import { contextBridge, ipcRenderer } from "electron";
 // exposing ipcRenderer/Node directly to the renderer.
 contextBridge.exposeInMainWorld("chatDesktop", {
   isDesktopApp: true,
-  // Only macOS Electron can't run an in-page WebAuthn ceremony; Windows/Linux
-  // use the normal passkey flow. The web app checks this before offering the
-  // browser-handoff button.
-  needsBrowserSignIn: process.platform === "darwin",
-  // macOS only: the web app calls this instead of starting a ceremony that
-  // would hang; the browser runs it and hands back a session the page collects
-  // via takePendingAuth on its next load.
+  // All platforms now, not just macOS: Electron has no browser extensions,
+  // so 1Password-style passkeys never show up in the in-page picker.
+  needsBrowserSignIn: true,
+  // Browser runs the ceremony; page collects the session via takePendingAuth.
   startPasskeySignIn: () => ipcRenderer.invoke("native-auth:start"),
   takePendingAuth: () => ipcRenderer.invoke("native-auth:take"),
   // Screen sharing. The capture itself goes through getDisplayMedia (the main
@@ -24,30 +21,6 @@ contextBridge.exposeInMainWorld("chatDesktop", {
   openScreenCaptureSettings: () =>
     ipcRenderer.invoke("screen-capture:open-settings"),
 });
-
-// Windows/Linux run WebAuthn in-shell, but the OS picker it opens can't see
-// passkeys stored in a password manager's browser extension (1Password,
-// etc.) — that extension isn't loaded in Electron. If the in-shell ceremony
-// fails, retry it as a browser handoff instead of just erroring out. Left
-// alone on macOS, which already always uses the handoff.
-if (process.platform !== "darwin") {
-  const script = document.createElement("script");
-  script.textContent = `(() => {
-    if (!navigator.credentials) return;
-    const withFallback = (native) => async (options) => {
-      try {
-        return await native(options);
-      } catch (err) {
-        await window.chatDesktop.startPasskeySignIn();
-        return new Promise(() => {}); // superseded by the reload on success
-      }
-    };
-    navigator.credentials.get = withFallback(navigator.credentials.get.bind(navigator.credentials));
-    navigator.credentials.create = withFallback(navigator.credentials.create.bind(navigator.credentials));
-  })();`;
-  document.documentElement.appendChild(script);
-  script.remove();
-}
 
 // The app already renders unread *channel* count (not message count) into
 // document.title as "(N) ..." (see frontend/src/App.vue) for the browser-tab
