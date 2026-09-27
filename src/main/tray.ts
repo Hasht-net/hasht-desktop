@@ -1,11 +1,23 @@
-import { Tray, Menu, nativeImage, app } from "electron";
+import { Tray, Menu, nativeImage, app, NativeImage } from "electron";
 import path from "node:path";
 import { getActiveServer, listServers, ServerEntry } from "./serverStore";
-import { getServerWindow } from "./windows";
+import { getAllServerWindows, getServerWindow } from "./windows";
 
 let tray: Tray | null = null;
 let unreadTotal = 0;
 const unreadByServer = new Map<string, number>();
+
+// Windows-only taskbar button badge (macOS/Linux use app.setBadgeCount's dock
+// badge instead). Loaded once and reused rather than re-decoded per update.
+let overlayBadge: NativeImage | null = null;
+function getOverlayBadge(): NativeImage | null {
+  if (overlayBadge) return overlayBadge;
+  const img = nativeImage.createFromPath(
+    path.join(__dirname, "../../build/overlay-badge.png"),
+  );
+  overlayBadge = img.isEmpty() ? null : img;
+  return overlayBadge;
+}
 
 export function initTray(opts: {
   onSwitchServer: (id: string) => void;
@@ -45,10 +57,18 @@ function applyUnreadTotal(): void {
   unreadTotal = [...unreadByServer.values()].reduce((a, b) => a + b, 0);
 
   // macOS/Linux (some DEs) dock badge; Windows doesn't have an app.setBadgeCount
-  // equivalent, so the tray icon/tooltip below is the cross-platform fallback.
+  // equivalent, so the taskbar overlay icon below covers it there instead.
   app.setBadgeCount?.(unreadTotal);
   if (tray) {
     tray.setToolTip(unreadTotal > 0 ? `Hasht — ${unreadTotal} unread` : "Hasht");
+  }
+
+  if (process.platform === "win32") {
+    const badge = unreadTotal > 0 ? getOverlayBadge() : null;
+    const description = unreadTotal > 0 ? `${unreadTotal} unread` : "";
+    for (const win of getAllServerWindows()) {
+      if (!win.isDestroyed()) win.setOverlayIcon(badge, description);
+    }
   }
 }
 
