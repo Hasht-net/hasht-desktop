@@ -141,6 +141,10 @@ export function getServerWindow(id: string): BrowserWindow | undefined {
   return serverWindows.get(id);
 }
 
+export function getAllServerWindows(): BrowserWindow[] {
+  return [...serverWindows.values()];
+}
+
 export function openPickerWindow(): BrowserWindow {
   if (pickerWindow && !pickerWindow.isDestroyed()) {
     pickerWindow.show();
