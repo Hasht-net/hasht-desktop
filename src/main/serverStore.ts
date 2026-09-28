@@ -7,9 +7,17 @@ export interface ServerEntry {
   name: string; // defaults to the hostname if not given
 }
 
+export interface WindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface StoreShape {
   servers: ServerEntry[];
   activeServerId: string | null;
+  windowBounds: Record<string, WindowBounds>;
 }
 
 // electron-store persists to userData/config.json — separate from the app's
@@ -17,8 +25,16 @@ interface StoreShape {
 // partition (see windows.ts). This only holds "which servers has the user
 // added" — never credentials; auth stays in the per-server session cookie.
 const store = new Store<StoreShape>({
-  defaults: { servers: [], activeServerId: null },
+  defaults: { servers: [], activeServerId: null, windowBounds: {} },
 });
+
+export function getWindowBounds(id: string): WindowBounds | undefined {
+  return store.get("windowBounds")[id];
+}
+
+export function setWindowBounds(id: string, bounds: WindowBounds): void {
+  store.set("windowBounds", { ...store.get("windowBounds"), [id]: bounds });
+}
 
 export function listServers(): ServerEntry[] {
   return store.get("servers");
@@ -49,6 +65,8 @@ export function removeServer(id: string): void {
   if (store.get("activeServerId") === id) {
     store.set("activeServerId", servers[0]?.id ?? null);
   }
+  const { [id]: _removed, ...bounds } = store.get("windowBounds");
+  store.set("windowBounds", bounds);
 }
 
 export function setActiveServer(id: string): void {
