@@ -7,6 +7,7 @@ import { contextBridge, ipcRenderer } from "electron";
 // exposing ipcRenderer/Node directly to the renderer.
 contextBridge.exposeInMainWorld("chatDesktop", {
   isDesktopApp: true,
+  getDateTimePreferences: () => ipcRenderer.invoke("date-time:preferences"),
   // All platforms now, not just macOS: Electron has no browser extensions,
   // so 1Password-style passkeys never show up in the in-page picker.
   needsBrowserSignIn: true,

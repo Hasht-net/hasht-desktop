@@ -40,6 +40,8 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
   extendInfo:
+    # Restrict macOS 26 code AutoFill to explicitly marked one-time-code fields.
+    NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true
     NSMicrophoneUsageDescription: Hasht needs microphone access for voice chat.
     NSCameraUsageDescription: Hasht needs camera access for voice chat.
     # Required for passkeys signed in on a phone (caBLE talks over BLE).
