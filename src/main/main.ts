@@ -29,6 +29,7 @@ import {
 import { getServerWindow } from "./windows";
 import { initAutoUpdater, checkForUpdatesFromMenu } from "./updater";
 import { openScreenCaptureSettings, screenCaptureStatus } from "./screenShare";
+import { getDateTimePreferences } from "./dateTimePreferences";
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() only schedules a quit; evaluation would continue and whenReady
@@ -123,6 +124,13 @@ app.whenReady().then(() => {
   initTray(trayCallbacks);
   buildAppMenu(appMenuCallbacks);
   initAutoUpdater();
+
+  ipcMain.handle("date-time:preferences", (event) => {
+    if (!serverIdForWebContents(event.sender.id) || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error("Date/time preferences are only available to server windows");
+    }
+    return getDateTimePreferences();
+  });
 
   const active = getActiveServer();
   if (active) {
