@@ -70,9 +70,8 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
   });
 
   // Electron grants every permission request when no handler is installed, so
-  // an untrusted server would get mic/cam/geolocation for free. Voice needs
-  // media and the app needs notifications; nothing else, and only from the
-  // server's own origin.
+  // an untrusted server would get mic/cam/geolocation for free. Allow voice,
+  // notifications and video fullscreen only from the server's own origin.
   const serverSession = session.fromPartition(partition);
   serverSession.setPermissionRequestHandler((_contents, permission, callback, details) => {
     callback(isPermitted(permission, details.requestingUrl, entry.url));
@@ -191,7 +190,8 @@ function isPermitted(
   if (
     permission !== "media" &&
     permission !== "notifications" &&
-    permission !== "display-capture"
+    permission !== "display-capture" &&
+    permission !== "fullscreen"
   )
     return false;
   return isSameOrigin(requestingUrl ?? "", serverUrl);
