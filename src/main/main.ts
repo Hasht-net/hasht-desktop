@@ -18,6 +18,7 @@ import {
   closeServerWindow,
   serverIdForWebContents,
   setQuitting,
+  TITLEBAR_HEIGHT,
 } from "./windows";
 import { clearUnread, initTray, refreshTrayMenu, setUnreadCount } from "./tray";
 import {
@@ -186,6 +187,24 @@ app.whenReady().then(() => {
   // renderer can neither read the status nor raise the prompt. It asks us.
   ipcMain.handle("screen-capture:status", () => screenCaptureStatus());
   ipcMain.handle("screen-capture:open-settings", () => openScreenCaptureSettings());
+
+  // The page's window bar is --bg-rail, which depends on the theme. The
+  // caption overlay is a native rectangle we paint separately; leave it at
+  // the first-paint guess and it reads as a patch behind the buttons.
+  ipcMain.on("desktop-theme", (event, payload: unknown) => {
+    if (process.platform === "darwin") return;
+    const colors = payload as { color?: unknown; symbolColor?: unknown };
+    const hex = /^#[0-9a-fA-F]{6}$/;
+    if (typeof colors?.color !== "string" || !hex.test(colors.color)) return;
+    if (typeof colors?.symbolColor !== "string" || !hex.test(colors.symbolColor)) return;
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) return;
+    win.setTitleBarOverlay({
+      color: colors.color,
+      symbolColor: colors.symbolColor,
+      height: TITLEBAR_HEIGHT,
+    });
+  });
 
   ipcMain.on("unread-count-changed", (event, count: number) => {
     const serverId = serverIdForWebContents(event.sender.id);

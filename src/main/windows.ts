@@ -1,6 +1,7 @@
-import { BrowserWindow, session, shell } from "electron";
+import { BrowserWindow, nativeTheme, screen, session, shell } from "electron";
 import path from "node:path";
 import type { ServerEntry } from "./serverStore";
+import { getWindowBounds, setWindowBounds } from "./serverStore";
 import { clearUnread } from "./tray";
 import { enableScreenShare } from "./screenShare";
 
@@ -9,6 +10,20 @@ import { enableScreenShare } from "./screenShare";
 // buttons need the system's own 32px title bar height or Electron's overlay
 // controls won't fit.
 export const TITLEBAR_HEIGHT = process.platform === "darwin" ? 28 : 32;
+
+// Caption-button overlay, Windows/Linux only. `color` is a solid rectangle
+// behind the buttons, so it has to be the same color the page paints the
+// window bar — --bg-rail in the web app (desktop-shell flattens the top of
+// every column to it). These are the first-paint guess; the page sends the
+// live tokens once it knows the theme (see setWindowButtons).
+const TITLEBAR_OVERLAY = {
+  dark: { color: "#0e0f11", symbolColor: "#dbdee1" },
+  light: { color: "#e3e5e8", symbolColor: "#060607" },
+} as const;
+
+export function titleBarOverlayOptions(theme: "dark" | "light" = "dark") {
+  return { ...TITLEBAR_OVERLAY[theme], height: TITLEBAR_HEIGHT };
+}
 
 const serverWindows = new Map<string, BrowserWindow>();
 const serverIdByWebContentsId = new Map<number, string>();
@@ -36,9 +51,11 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
 
   const partition = `persist:server-${entry.id}`;
   const isMac = process.platform === "darwin";
+  const bounds = restorableBounds(entry.id);
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
+    ...bounds,
     minWidth: 720,
     minHeight: 480,
     title: entry.name,
@@ -48,10 +65,11 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
     titleBarStyle: isMac ? "hiddenInset" : "hidden",
     trafficLightPosition: isMac ? { x: 13, y: 8 } : undefined,
     // Windows/Linux have no traffic lights to inherit, so Electron draws the
-    // controls over our strip instead. Dark to match the app's default theme.
+    // controls over our strip instead. Match the OS theme until the page
+    // reports its own (a pinned theme can disagree with the system).
     titleBarOverlay: isMac
       ? undefined
-      : { color: "#131417", symbolColor: "#dbdee1", height: TITLEBAR_HEIGHT },
+      : titleBarOverlayOptions(nativeTheme.shouldUseDarkColors ? "dark" : "light"),
     // Painted before the page loads, so a cold start doesn't flash white.
     backgroundColor: "#131417",
     webPreferences: {
@@ -125,6 +143,14 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
     serverWindows.delete(entry.id);
     serverIdByWebContentsId.delete(webContentsId);
   });
+
+  // 'resized'/'moved' fire once the user lets go, not on every intermediate
+  // frame of the drag — persisting on `closed` would miss the final state
+  // when the app quits via Cmd+Q instead of a window close.
+  const persistBounds = () => setWindowBounds(entry.id, win.getBounds());
+  win.on("resized", persistBounds);
+  win.on("moved", persistBounds);
+
   serverWindows.set(entry.id, win);
   serverIdByWebContentsId.set(webContentsId, entry.id);
   return win;
@@ -205,6 +231,23 @@ function openExternal(url: string): void {
   if (protocol === "http:" || protocol === "https:" || protocol === "mailto:") {
     shell.openExternal(url);
   }
+}
+
+// Saved bounds can point at a display that's since been unplugged (laptop
+// undocked, monitor turned off) — restoring blindly would put the window
+// off-screen where the user can't reach it. Only reuse bounds that still
+// overlap some connected display.
+function restorableBounds(id: string): Electron.Rectangle | undefined {
+  const bounds = getWindowBounds(id);
+  if (!bounds) return undefined;
+  const onScreen = screen
+    .getAllDisplays()
+    .some((display) => rectanglesOverlap(bounds, display.workArea));
+  return onScreen ? bounds : undefined;
+}
+
+function rectanglesOverlap(a: Electron.Rectangle, b: Electron.Rectangle): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 function isSameOrigin(url: string, serverUrl: string): boolean {
