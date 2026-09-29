@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld("chatDesktop", {
   getScreenCaptureStatus: () => ipcRenderer.invoke("screen-capture:status"),
   openScreenCaptureSettings: () =>
     ipcRenderer.invoke("screen-capture:open-settings"),
+  // Windows/Linux caption buttons. The page passes the bar color; main
+  // checks it's a plain hex before handing it to the overlay.
+  setWindowButtons: (colors: { color: string; symbolColor: string }) =>
+    ipcRenderer.send("desktop-theme", colors),
 });
 
 // The app already renders unread *channel* count (not message count) into
