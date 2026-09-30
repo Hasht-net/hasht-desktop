@@ -15,14 +15,19 @@ const path = require("node:path");
  * System Settings. It is not a substitute for notarization — that needs a
  * Developer ID — it just turns an unopenable download into an openable one.
  *
- * `--options runtime` + `--entitlements` matter too, not just "does it run":
- * without hardened runtime active, camera/mic access (which hardened runtime
- * gates on these same entitlement keys, separately from App Sandbox) fails
- * silently, and screen-recording TCC — keyed to the app's code identity —
- * gets flakier about ever registering/re-prompting when the identity behind
- * it isn't the one actually granted. Ad-hoc still means a new identity every
- * rebuild (no Developer ID to anchor it), so that flakiness isn't fully fixed
- * here — only real signing/notarization fixes it for good.
+ * `--options runtime` turns on hardened runtime, which camera/mic access
+ * needs even outside App Sandbox — but hardened runtime's own entitlements
+ * split into two classes. Plain ones (JIT, outbound network) an ad-hoc
+ * signature can declare freely. Camera, mic, Bluetooth and keychain-access-
+ * groups are AMFI "restricted" entitlements: the kernel refuses to even
+ * launch a binary that declares them without a real Apple-issued identity
+ * behind it ("The file is adhoc signed but contains restricted entitlements",
+ * confirmed via `log show` against amfid). So this ad-hoc path gets hardened
+ * runtime plus only the non-restricted entitlements — camera/mic/Bluetooth
+ * stay unentitled here, same as before this file started passing
+ * `--options runtime` at all. A real Developer ID build (electron-builder's
+ * own signing path, once CI secrets exist) gets the full entitlements.mac
+ * .plist instead, where those keys work as intended.
  */
 exports.default = async function afterPack(context) {
   if (context.electronPlatformName !== "darwin") return;
@@ -43,7 +48,7 @@ exports.default = async function afterPack(context) {
     context.appOutDir,
     `${context.packager.appInfo.productFilename}.app`,
   );
-  const entitlements = path.join(__dirname, "entitlements.mac.plist");
+  const entitlements = path.join(__dirname, "entitlements.mac.adhoc.plist");
 
   // --deep is deprecated for real distribution signing but is still the way
   // to ad-hoc sign the nested Electron frameworks and helper apps in one go.

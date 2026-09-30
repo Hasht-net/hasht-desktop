@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Used only by build/afterPack.js's ad-hoc signing path (no CSC_LINK/CSC_NAME
+  configured). A subset of entitlements.mac.plist: camera, audio-input,
+  bluetooth and keychain-access-groups are AMFI "restricted" entitlements —
+  the kernel refuses to even launch a binary that declares them without a
+  real Apple-issued signing identity behind it ("The file is adhoc signed but
+  contains restricted entitlements", confirmed via `log show` against amfid).
+  A real Developer ID build (electron-builder's own signing path) gets the
+  full entitlements.mac.plist instead, where those keys work as intended.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!--
+      Hardened runtime's library validation requires a loaded dylib/framework
+      to share the main executable's Team ID (or be an Apple platform binary).
+      Ad-hoc signatures have no Team ID at all, so without this, nothing not
+      literally Apple-signed can load — including this app's own nested
+      Electron Framework, ad-hoc-signed or not (confirmed via a crash: "have
+      different Team IDs", dyld refusing to load Electron Framework from
+      inside its own .app). Real Developer ID builds don't need this, since
+      every nested piece shares one real Team ID.
+    -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>
