@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, net } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net, powerMonitor } from "electron";
 import path from "node:path";
 import {
   addServer,
@@ -195,6 +195,16 @@ app.whenReady().then(() => {
   // renderer can neither read the status nor raise the prompt. It asks us.
   ipcMain.handle("screen-capture:status", () => screenCaptureStatus());
   ipcMain.handle("screen-capture:open-settings", () => openScreenCaptureSettings());
+
+  // Expose only the activity verdict needed for presence, never exact idle
+  // time or raw input. The threshold matches the web client's five minutes.
+  ipcMain.handle("system-activity:state", (event) => {
+    if (!serverIdForWebContents(event.sender.id)) return null;
+    const state = powerMonitor.getSystemIdleState(5 * 60);
+    if (state === "active") return true;
+    if (state === "idle" || state === "locked") return false;
+    return null;
+  });
 
   // The page's window bar is --bg-rail, which depends on the theme. The
   // caption overlay is a native rectangle we paint separately; leave it at
