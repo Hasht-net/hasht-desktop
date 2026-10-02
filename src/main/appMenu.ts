@@ -28,10 +28,7 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
           {
             label: app.name,
             submenu: [
-              // Not the native `role: "about"` panel: that can only show this
-              // app's own version, not the connected server's. onAbout opens
-              // the same in-page modal the titlebar's "i" button does, so
-              // there's one About surface instead of two disagreeing ones.
+              // Not role: "about" — that panel can't show the server's version.
               { label: "About Hasht", click: callbacks.onAbout },
               {
                 label: "Check for Updates…",
@@ -110,8 +107,7 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
     {
       role: "help",
       submenu: [
-        // Windows/Linux have no app-name submenu to hold this (that's a
-        // mac-only menu bar convention), so it lives in Help instead.
+        // No app-name submenu on Windows/Linux, so About lives here instead.
         ...(isMac
           ? []
           : [

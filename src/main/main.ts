@@ -100,9 +100,7 @@ function connectToServer(id: string) {
   refreshMenus();
 }
 
-// Routed through the active server window's page rather than Electron's
-// built-in about panel (`role: "about"`), which only knows this app's own
-// version — the page also shows the connected server's own version.
+// Pushes to the page instead of Electron's role: "about" panel.
 function showAbout(): void {
   const active = getActiveServer();
   if (!active) return;
