@@ -60,6 +60,15 @@ function appVersion(): string {
   return arg ? arg.slice("--app-version=".length) : "unknown";
 }
 
+// The native "About Hasht" app-menu item (see appMenu.ts) has no page of its
+// own, so main pushes here instead of opening Electron's default about panel.
+// contextBridge only exposes page-callable functions, not a main-to-page
+// push, so relay it as a plain DOM event the page already knows how to
+// listen for (same shape as any other window event).
+ipcRenderer.on("show-about", () => {
+  window.dispatchEvent(new Event("hasht:show-about"));
+});
+
 // Tells the page it is running frameless so it can reserve room for the
 // window controls and mark a drag region. The app owns the layout; the shell
 // only supplies the flag and the height.

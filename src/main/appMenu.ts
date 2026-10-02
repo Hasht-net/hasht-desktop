@@ -5,6 +5,7 @@ export interface AppMenuCallbacks {
   onSwitchServer: (id: string) => void;
   onManageBackends: () => void;
   onCheckForUpdates: () => void;
+  onAbout: () => void;
   onQuit: () => void;
 }
 
@@ -27,7 +28,11 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
           {
             label: app.name,
             submenu: [
-              { role: "about" as const },
+              // Not the native `role: "about"` panel: that can only show this
+              // app's own version, not the connected server's. onAbout opens
+              // the same in-page modal the titlebar's "i" button does, so
+              // there's one About surface instead of two disagreeing ones.
+              { label: "About Hasht", click: callbacks.onAbout },
               {
                 label: "Check for Updates…",
                 click: callbacks.onCheckForUpdates,
@@ -105,9 +110,13 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
     {
       role: "help",
       submenu: [
+        // Windows/Linux have no app-name submenu to hold this (that's a
+        // mac-only menu bar convention), so it lives in Help instead.
         ...(isMac
           ? []
           : [
+              { label: "About Hasht", click: callbacks.onAbout },
+              { type: "separator" as const },
               {
                 label: "Check for Updates…",
                 click: callbacks.onCheckForUpdates,

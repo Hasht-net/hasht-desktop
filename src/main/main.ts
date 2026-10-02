@@ -100,6 +100,16 @@ function connectToServer(id: string) {
   refreshMenus();
 }
 
+// Routed through the active server window's page rather than Electron's
+// built-in about panel (`role: "about"`), which only knows this app's own
+// version — the page also shows the connected server's own version.
+function showAbout(): void {
+  const active = getActiveServer();
+  if (!active) return;
+  const win = openServerWindow(active);
+  win.webContents.send("show-about");
+}
+
 // Tray and the app menu both list the same servers, so any change to the
 // list (add/remove/rename) has to refresh both or one goes stale.
 function refreshMenus(): void {
@@ -116,6 +126,7 @@ const trayCallbacks = {
 const appMenuCallbacks = {
   onSwitchServer: connectToServer,
   onManageBackends: () => openPickerWindow(),
+  onAbout: showAbout,
   onCheckForUpdates: () => void checkForUpdatesFromMenu(),
   onQuit: () => app.quit(),
 };
