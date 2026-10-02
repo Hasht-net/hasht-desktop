@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld("chatDesktop", {
   // Browser runs the ceremony; page collects the session via takePendingAuth.
   startPasskeySignIn: () => ipcRenderer.invoke("native-auth:start"),
   takePendingAuth: () => ipcRenderer.invoke("native-auth:take"),
+  // Coarse system activity keeps mobile push quiet while the user works in
+  // another app. Main checks the window and returns only active/idle/unknown.
+  getSystemActivity: () => ipcRenderer.invoke("system-activity:state"),
   // Screen sharing. The capture itself goes through getDisplayMedia (the main
   // process installs the handler that answers it); these two cover the part
   // the page can't see — macOS grants screen recording to the app, and neither
