@@ -1,4 +1,11 @@
-import { BrowserWindow, nativeTheme, screen, session, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  nativeTheme,
+  screen,
+  session,
+  shell,
+} from "electron";
 import path from "node:path";
 import type { ServerEntry } from "./serverStore";
 import { getWindowBounds, setWindowBounds } from "./serverStore";
@@ -78,9 +85,13 @@ export function openServerWindow(entry: ServerEntry): BrowserWindow {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
-      // A sandboxed preload can't import from main, so TITLEBAR_HEIGHT is
-      // passed as an argv flag instead of being duplicated there.
-      additionalArguments: [`--titlebar-height=${TITLEBAR_HEIGHT}`],
+      // A sandboxed preload can't import from main, so TITLEBAR_HEIGHT and the
+      // app version are passed as argv flags instead of being duplicated or
+      // IPC-fetched there.
+      additionalArguments: [
+        `--titlebar-height=${TITLEBAR_HEIGHT}`,
+        `--app-version=${app.getVersion()}`,
+      ],
       // A hidden window is still the live connection to the server; letting
       // Chromium throttle its timers delays notifications and reconnects.
       backgroundThrottling: false,

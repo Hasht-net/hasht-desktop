@@ -8,6 +8,10 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("chatDesktop", {
   isDesktopApp: true,
   getDateTimePreferences: () => ipcRenderer.invoke("date-time:preferences"),
+  // Supplied by the main process (see additionalArguments in windows.ts),
+  // same as titlebarHeight() below — the page's About panel shows this
+  // alongside its own frontend version.
+  appVersion: appVersion(),
   // All platforms now, not just macOS: Electron has no browser extensions,
   // so 1Password-style passkeys never show up in the in-page picker.
   needsBrowserSignIn: true,
@@ -47,6 +51,13 @@ function titlebarHeight(): number {
   const arg = process.argv.find((a) => a.startsWith("--titlebar-height="));
   const parsed = arg ? parseInt(arg.split("=")[1], 10) : NaN;
   return Number.isFinite(parsed) ? parsed : 28;
+}
+
+// Same argv-flag approach as titlebarHeight() — a sandboxed preload has no
+// access to the main-process `app` module.
+function appVersion(): string {
+  const arg = process.argv.find((a) => a.startsWith("--app-version="));
+  return arg ? arg.slice("--app-version=".length) : "unknown";
 }
 
 // Tells the page it is running frameless so it can reserve room for the
