@@ -100,6 +100,14 @@ function connectToServer(id: string) {
   refreshMenus();
 }
 
+// Pushes to the page instead of Electron's role: "about" panel.
+function showAbout(): void {
+  const active = getActiveServer();
+  if (!active) return;
+  const win = openServerWindow(active);
+  win.webContents.send("show-about");
+}
+
 // Tray and the app menu both list the same servers, so any change to the
 // list (add/remove/rename) has to refresh both or one goes stale.
 function refreshMenus(): void {
@@ -116,6 +124,7 @@ const trayCallbacks = {
 const appMenuCallbacks = {
   onSwitchServer: connectToServer,
   onManageBackends: () => openPickerWindow(),
+  onAbout: showAbout,
   onCheckForUpdates: () => void checkForUpdatesFromMenu(),
   onQuit: () => app.quit(),
 };

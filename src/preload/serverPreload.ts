@@ -60,6 +60,11 @@ function appVersion(): string {
   return arg ? arg.slice("--app-version=".length) : "unknown";
 }
 
+// Relayed as a DOM event since contextBridge can't push into the page directly.
+ipcRenderer.on("show-about", () => {
+  window.dispatchEvent(new Event("hasht:show-about"));
+});
+
 // Tells the page it is running frameless so it can reserve room for the
 // window controls and mark a drag region. The app owns the layout; the shell
 // only supplies the flag and the height.

@@ -5,6 +5,7 @@ export interface AppMenuCallbacks {
   onSwitchServer: (id: string) => void;
   onManageBackends: () => void;
   onCheckForUpdates: () => void;
+  onAbout: () => void;
   onQuit: () => void;
 }
 
@@ -27,7 +28,8 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
           {
             label: app.name,
             submenu: [
-              { role: "about" as const },
+              // Not role: "about" — that panel can't show the server's version.
+              { label: "About Hasht", click: callbacks.onAbout },
               {
                 label: "Check for Updates…",
                 click: callbacks.onCheckForUpdates,
@@ -105,9 +107,12 @@ export function buildAppMenu(callbacks: AppMenuCallbacks): void {
     {
       role: "help",
       submenu: [
+        // No app-name submenu on Windows/Linux, so About lives here instead.
         ...(isMac
           ? []
           : [
+              { label: "About Hasht", click: callbacks.onAbout },
+              { type: "separator" as const },
               {
                 label: "Check for Updates…",
                 click: callbacks.onCheckForUpdates,
